@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proompter</title>
+  </head>
+  <body>
+    <h1>Proompter</h1>
+
+    Say you're proompt...
+
+    <div id="proomptBox" style="padding: 22px 0; font-family: monospace">
+      <h3 style="display: inline-block">Proompt:</h3>
+      <span id="proomptTxt"></span>
+    </div>
+
+    <button id="button" onclick="getResponse()">Get Response</button>
+
+    <h5 id="respTxt"></h5>
+
+    <script>
+      let proompt = '';
+
+      function manageVisibility() {
+        if (!proompt) {
+          proomptBox.style.display = 'none';
+          button.style.display = 'none';
+        } else {
+          proomptBox.style.display = 'block';
+          button.style.display = 'inline-block';
+        }
+      }
+
+      const recog = new (window.SpeechRecognition ||
+        window.webkitSpeechRecognition)();
+      recog.onresult = (ev) => {
+        proompt = ev.results[0][0].transcript;
+        proompt = proompt.charAt(0).toUpperCase() + proompt.slice(1);
+        proomptTxt.innerText = proompt;
+
+        manageVisibility();
+      };
+      recog.start();
+
+      async function getResponse() {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            proompt
+          })
+        });
+        const { resp } = await response.json();
+
+        proompt = '';
+
+        manageVisibility();
+
+        let utterance = new window.SpeechSynthesisUtterance(resp);
+        window.speechSynthesis.speak(utterance);
+
+        [...resp].forEach(async (respChar, i) => {
+          setTimeout(() => {
+            respTxt.innerHTML += respChar;
+          }, 200 * i - i * 100);
+        });
+      }
+
+      manageVisibility();
+    </script>
+  </body>
+</html>
